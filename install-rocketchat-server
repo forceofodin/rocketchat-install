@@ -1,0 +1,71 @@
+#!/bin/bash
+sudo apt -y update
+sudo apt -y upgrade
+
+#install node.js
+sudo apt install -y nodejs npm build-essential curl software-properties-common graphicsmagick vim
+
+sudo npm install -g inherits n
+sudo n 12.16.1
+
+#install mongo
+#=====================
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4
+sudo add-apt-repository 'deb [arch=amd64] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.0 multiverse'
+
+sudo apt -y update
+sudo apt -y install mongodb-org
+
+sudo systemctl start mongod
+sudo systemctl enable mongod
+
+echo -e "replication:\n replSetName: \"rs01\"" | tee -a /etc/mongod.conf
+systemctl restart mongod
+mongo --eval "rs.initiate()"
+
+sudo useradd -m -U -r -d /opt/rocket rocket
+
+sudo usermod -a -G rocket www-data
+sudo chmod 750 /opt/rocket
+
+sudo su - rocket
+bash
+
+curl -L https://releases.rocket.chat/latest/download -o rocket.chat.tgz
+tar zxf rocket.chat.tgz
+mv bundle Rocket.Chat
+cd Rocket.Chat/programs/server
+npm install
+
+#export env variables
+export ROOT_URL=http://192.168.1.176:3000
+export MONGO_URL=mongodb://localhost:27017/rocketchat
+export MONGO_OPLOG_URL=mongodb://localhost:27017/local?replSet=rs01
+export PORT=3000
+
+cd ../../
+node main.js
+
+#create the rocketchat sys service
+sudo touch /etc/systemd/system/rocketchat.service
+
+echo "[Unit]" >> /etc/systemd/system/rocketchat.service
+echo "Description=Rocket.Chat server" >> /etc/systemd/system/rocketchat.service
+echo "After=network.target nss-lookup.target mongod.target" >> /etc/systemd/system/rocketchat.service
+
+echo "[Service]" >> /etc/systemd/system/rocketchat.service
+echo "StandardOutput=syslog" >> /etc/systemd/system/rocketchat.service
+echo "StandardError=syslog" >> /etc/systemd/system/rocketchat.service
+echo "SyslogIdentifier=rocketchat" >> /etc/systemd/system/rocketchat.service
+echo "User=rocketchat" >> /etc/systemd/system/rocketchat.service
+echo "Environment=MONGO_URL=mongodb://localhost:27017/rocketchat MONGO_OPLOG_URL=mongodb://localhost:27017/local?replSet=rs01 ROOT_URL=http://192.168.1.176 PORT=3000" >> /etc/systemd/system/rocketchat.service
+echo "ExecStart=/usr/local/bin/node /opt/rocketchat/Rocket.Chat/main.js" >> /etc/systemd/system/rocketchat.service
+
+echo "[Install]" >> /etc/systemd/system/rocketchat.service
+echo "WantedBy=multi-user.target" >> /etc/systemd/system/rocketchat.service
+
+#reload, enable, start rocketchat
+sudo systemctl daemon-reload
+sudo systemctl enable rocketchat
+sudo systemctl start rocketchat
+
