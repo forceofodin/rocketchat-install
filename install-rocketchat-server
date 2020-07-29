@@ -23,22 +23,24 @@ sudo echo -e "replication:\n replSetName: \"rs01\"" | tee -a /etc/mongod.conf
 sudo systemctl restart mongod
 sudo mongo --eval "rs.initiate()"
 
+#create rocket user and home dir
 sudo useradd -m -U -r -d /opt/rocket rocket
 
 sudo usermod -a -G rocket www-data
 sudo chmod 750 /opt/rocket
-
+#download rocketchat and install with npm
 sudo -u rocket cd /opt/rocket
 sudo -u rocket curl -L https://releases.rocket.chat/latest/download -o rocket.chat.tgz
 sudo -u rocket tar zxf rocket.chat.tgz
 sudo -u rocket mv bundle Rocket.Chat
 sudo -u rocket cd Rocket.Chat/programs/server
 sudo -u rocket npm install
-
+#set enviro variables
 sudo -u rocket export ROOT_URL=http://192.168.1.176:3000
 sudo -u rocket export MONGO_URL=mongodb://localhost:27017/rocketchat
 sudo -u rocket export MONGO_OPLOG_URL=mongodb://localhost:27017/local?replSet=rs01
 sudo -u rocket export PORT=3000
+#check node to be working proper
 sudo -u rocket cd /opt/rocket/Rocket.Chat
 sudo -u rocket node main.js
 
