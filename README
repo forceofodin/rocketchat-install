@@ -1,2 +1,8 @@
-Run scripts 1 and 3 as root.
-Run script 2 as newly created user "rocket"
+Flow
+##############################################################################################################
+rc1.sh
+rc2.sh              #run as user rocket, exit after to root user
+rc3.sh              #check for node behavior and availabolioty of rocketchat installation at the local address. 
+edit-site.sh        #change location of service to web address once rocketchat install is shown to be working
+install-nginx.sh    #setup nginx and firewall
+install-cert.sh     #install cerbot, generate ssl cert and install 
