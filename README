@@ -1,0 +1,2 @@
+Run scripts 1 and 3 as root.
+Run script 2 as newly created user "rocket"
